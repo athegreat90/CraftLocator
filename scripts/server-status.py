@@ -3,6 +3,8 @@
 import json
 import socket
 import struct
+import sys
+from pathlib import Path
 
 
 def varint(value):
@@ -36,6 +38,8 @@ def read_varint(connection):
 
 
 def main():
+    properties = dict(line.split('=', 1) for line in (Path(__file__).resolve().parents[1] / 'gradle.properties').read_text().splitlines() if '=' in line)
+    expected_version = sys.argv[1] if len(sys.argv) > 1 else properties['minecraft_version']
     with socket.create_connection(('127.0.0.1', 25565), timeout=5) as connection:
         host = b'127.0.0.1'
         packet = varint(0) + varint(777) + varint(len(host)) + host + struct.pack('>H', 25565) + varint(1)
@@ -47,9 +51,9 @@ def main():
         if not 1 <= size <= length:
             raise ValueError('Invalid Minecraft status JSON length')
         status = json.loads(read_exact(connection, size))
-        if status['version']['name'] != '26.3':
-            raise ValueError('Expected Minecraft 26.3')
-        print(f"Minecraft 26.3 ready; online players: {status['players']['online']}")
+        if status['version']['name'] != expected_version:
+            raise ValueError('Expected Minecraft ' + expected_version)
+        print(f"Minecraft {expected_version} ready; online players: {status['players']['online']}")
 
 
 if __name__ == '__main__':

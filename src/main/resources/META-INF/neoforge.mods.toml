@@ -9,12 +9,12 @@ description='''Read-only server resource locator and crafting assistant.'''
 [[dependencies.craftlocator]]
 modId="neoforge"
 type="required"
-versionRange="[26.3.0.99,26.4)"
+versionRange="[${neo_version},)"
 ordering="NONE"
 side="BOTH"
 [[dependencies.craftlocator]]
 modId="minecraft"
 type="required"
-versionRange="[26.3]"
+versionRange="[${minecraft_version}]"
 ordering="NONE"
 side="BOTH"

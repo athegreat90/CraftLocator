@@ -9,15 +9,19 @@ Git worktree unless the user explicitly requests one. Preserve user changes.
 
 ## Toolchain and checks
 
-- Target Minecraft 26.3, NeoForge 26.3.0.99, Java 25 and Kotlin 2.4.21.
-- Pinned dependency/plugin versions live in gradle.properties. Gradle 9.2.1 is
+- Target Minecraft 26.1.2, 26.2 and 26.3 with their pinned NeoForge builds, Java 25
+  and Kotlin 2.4.21. CraftLocator version is 0.2.0.
+- Pinned dependency/plugin versions live in gradle.properties. Gradle 9.8.2 is
   pinned, with SHA-256 verification, in gradle/wrapper/gradle-wrapper.properties.
 - Use the official ModDevGradle configuration and KotlinLangForge's `klf`
   language adapter. It is an FML library; do not invent a required mod dependency
   on its library ID. Do not shade Kotlin into the mod.
 - On this cloud machine: `source /workspace/.craftlocator-tools/activate.sh`.
 - Compile/test: `./gradlew compileKotlin test`; full verification:
-  `./gradlew test runGameTestServer build`. Windows: `gradlew.bat` with Java 25.
+  `./gradlew -Pminecraft_version=<target> test runGameTestServer build` for each
+  supported target. Default: 26.3. Windows: `gradlew.bat` with Java 25. Build outputs
+  are in `build/mc<target>`, worlds/logs in `runs/<target>`. Do not mix target caches
+  or open newer development worlds with an older version.
 - The GameTest run sets `craftlocator.tests=true`. Test registries and fixtures
   must remain disabled during normal gameplay. Never accept a zero-test run as
   integration validation; inspect the completed test counts and process status.
@@ -26,7 +30,8 @@ Git worktree unless the user explicitly requests one. Preserve user changes.
 - Release automation: run `python3 -m unittest discover -s scripts/tests -v`
   for workflow/helper changes. Publish only after a successful main-push build,
   using that run's tested JAR and exact SHA. Keep write permission confined to
-  the release job, preserve published assets on retries, and never release PRs.
+  the release job, require every matrix target's JAR/checksum, preserve published
+  assets on retries, and never release PRs.
 
 ## Implementation invariants
 
@@ -34,7 +39,11 @@ Use immutable data for planning and search candidates. World access belongs on
 Minecraft's server thread. Never use coroutines or executor threads for world
 reads. Verify actual APIs against the development sources when updating versions;
 26.3 uses Identifier, PermissionSet, ResourceHandler<ItemResource>, and a new
-recipe representation. Do not transplant older tutorial signatures.
+recipe representation. Compile-time FML adapters in `src/compat` use SERVER on
+26.1.2/26.2 and SYNCED on 26.3. Keep adapters minimal and shared features in main.
+Do not widen a JAR's metadata without testing binary compatibility; releases
+currently contain a separate exact-target JAR per Minecraft version. Do not
+transplant older tutorial signatures.
 
 Searches must never create chunk tickets, load/generate chunks, move players,
 mutate inventory or modify blocks. The production scanner's sole chunk lookup

@@ -5,16 +5,28 @@ plugins {
 }
 group = 'io.github.athegreat90.craftlocator'
 version = mod_version
-base { archivesName = 'craftlocator' }
+def targetMinecraft = providers.gradleProperty('minecraft_version').get()
+def supportedMinecraft = providers.gradleProperty('supported_minecraft_versions').get().split(',').toList()
+if (!supportedMinecraft.contains(targetMinecraft)) {
+    throw new GradleException("Unsupported Minecraft target '${targetMinecraft}'. Choose ${supportedMinecraft.join(', ')}")
+}
+def targetNeoForge = providers.gradleProperty("neo_version.${targetMinecraft}").get()
+layout.buildDirectory = layout.projectDirectory.dir("build/mc${targetMinecraft}")
+base {
+    archivesName = 'craftlocator'
+}
+tasks.named('jar', Jar).configure { archiveClassifier = "mc${targetMinecraft}" }
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
 kotlin { jvmToolchain(25) }
+// FML 12 renamed SERVER configuration to SYNCED; compile against each loader's API.
+kotlin.sourceSets.main.kotlin.srcDir("src/compat/${targetMinecraft == '26.3' ? 'modern' : 'legacy'}/kotlin")
 repositories { maven { url = 'https://repo.nyon.dev/releases' }; mavenCentral() }
 neoForge {
-    version = neo_version
+    version = targetNeoForge
     runs {
-        server { server(); programArgument '--nogui'; gameDirectory = project.file('runs/server') }
-        client { client() }
-        gameTestServer { type = 'gameTestServer'; gameDirectory = project.file('runs/gametest'); systemProperty 'neoforge.enabledGameTestNamespaces', 'craftlocator'; systemProperty 'craftlocator.tests', 'true' }
+        server { server(); programArgument '--nogui'; gameDirectory = project.file("runs/${targetMinecraft}/server") }
+        client { client(); gameDirectory = project.file("runs/${targetMinecraft}/client") }
+        gameTestServer { type = 'gameTestServer'; gameDirectory = project.file("runs/${targetMinecraft}/gametest"); systemProperty 'neoforge.enabledGameTestNamespaces', 'craftlocator'; systemProperty 'craftlocator.tests', 'true' }
     }
     mods { craftlocator { sourceSet sourceSets.main } }
 }
@@ -28,7 +40,11 @@ tasks.withType(Test).configureEach { useJUnitPlatform() }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
 processResources {
     inputs.property 'version', project.version
-    filesMatching('META-INF/neoforge.mods.toml') { expand(version: project.version) }
+    inputs.property 'minecraft_version', targetMinecraft
+    inputs.property 'neo_version', targetNeoForge
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand(version: project.version, minecraft_version: targetMinecraft, neo_version: targetNeoForge)
+    }
 }
 
 // Gradle does not automatically forward its JVM's proxy/trust properties to game JVMs.

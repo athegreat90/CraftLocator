@@ -1,142 +1,128 @@
-# Verified compatibility and validation — 2026-10-26
+# CraftLocator 0.2.0 — verified compatibility (2026-10-27)
 
-The cloud now supports compilation, automated tests, JAR packaging and dedicated
-server development. The initial repository was empty; the implementation and
-supporting files were created locally. The initial implementation was subsequently
-pushed to `main` as commit `929ef99` with the user's authorization.
+CraftLocator supports every currently released Minecraft version from 26.1.2
+through 26.3: **26.1.2, 26.2 and 26.3**. Each target has its own compiled JAR,
+exact Minecraft dependency metadata and tested NeoForge pin. Version 0.2.0 is a
+minor feature release for the expanded support; 0.1.0 supported only 26.3.
 
-## Actual versions
+## Actual toolchain and targets
 
-| Component | Verified version |
-| --- | --- |
-| Minecraft Java | 26.3 (protocol 777) |
-| NeoForge | 26.3.0.99 |
-| Kotlin compiler | 2.4.21 |
-| KotlinLangForge | 2.16.0-k2.4.21-3.1+neoforge |
-| Gradle | 9.2.1 |
-| ModDevGradle | 2.0.148 |
-| Java | Oracle JDK 25.0.5.0.3, classfile target Java 25 |
-| JUnit Jupiter | 6.0.3 |
+| Minecraft | NeoForge | FML | Gameplay config | Local checks |
+| --- | --- | --- | --- | --- |
+| 26.1.2 | 26.1.2.124 | 11.0.15 | SERVER | 34 JUnit + 18 GameTests passed |
+| 26.2 | 26.2.0.93 | 11.0.16 | SERVER | 34 JUnit + 18 GameTests passed |
+| 26.3 | 26.3.0.99 | 12.0.12 | SYNCED | 34 JUnit + 18 GameTests passed |
 
-NeoForge 26.3.0.99 was the latest 26.3 release in the Maven catalog when checked.
-Mojang's manifest confirmed Minecraft 26.3. Modrinth and the KotlinLangForge Maven
-catalog confirmed the exact adapter artifact and its Minecraft 26.3 support.
-The installed KotlinLangForge Maven JAR's SHA-512 matched the primary file hash
-published by Modrinth for that version. Gradle's embedded Kotlin 2.2.20 is its DSL
-runtime and is not the mod compiler.
+All builds use Java 25 (cloud Oracle JDK 25.0.5.0.3), Kotlin 2.4.21,
+KotlinLangForge 2.16.0-k2.4.21-3.1+neoforge, ModDevGradle 2.0.148 and JUnit 6.0.3.
+Minecraft's official version manifests confirm Java 25 for all three targets.
+The NeoForge Maven catalog was checked for the latest release of each target.
+KotlinLangForge's exact artifact declares all three game versions; its installed
+Maven JAR matched the official Modrinth primary file's SHA-512.
 
-Foundation: [official MDK](https://github.com/NeoForgeMDKs/MDK-26.3-ModDevGradle/tree/543f871769bba1b5fcd138359e80f74739442167)
-at commit `543f871769bba1b5fcd138359e80f74739442167`. Its default NeoForge 26.3.0.98
-was first compiled successfully as a reference, then the project was pinned to
-verified release 26.3.0.99. Its supported Groovy build configuration was retained
-and adapted for Kotlin, tests and centralized version properties.
+**Gradle 9.8.2** was the latest stable release from
+`https://services.gradle.org/versions/current` when checked. The official wrapper
+was regenerated under 9.8.2 and verified:
 
-## APIs verified against the actual 26.3 development classpath
+- Distribution SHA-256:
+  `21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607`.
+- Wrapper JAR SHA-256:
+  `3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98`.
 
-- Commands use `RegisterCommandsEvent`, `IdentifierArgument` and live registries.
-  Brigadier string words are unsuitable for namespaced IDs because `:` terminates
-  a word; command integration tests exercise full namespaced commands.
-- Permission checks use `PermissionSet.hasPermission(COMMANDS_GAMEMASTER)`.
-- Server configuration uses `ModConfig.Type.SYNCED`; the legacy `SERVER` enum no
-  longer exists in this loader.
-- Tick work uses `ServerTickEvent.Post` on the logical server thread.
-- Inventory capabilities are `Capabilities.Item.BLOCK` with
-  `ResourceHandler<ItemResource>`, `size()`, `getResource()` and
-  `getAmountAsLong()`. No extraction/insertion transaction is opened.
-- `ServerChunkCache.getChunkNow` was inspected in actual source/bytecode. It only
-  checks the cache and existing visible full chunk holders. It does not request
-  or generate chunks. The scanner never uses a loading lookup.
-- RecipeManager exposes `getRecipes()`; shaped recipes expose optional
-  ingredients and dimensions. Shapeless ingredients are read from placement
-  info. Both standard implementations produce their static result using
-  `assemble(CraftingInput.EMPTY)`, preserving result components/counts.
-- Actual ingredient predicates test inventory stack components. World item
-  matching for missing ingredients reuses those predicates. Unsupported output
-  identification uses the recipe's public display and SlotDisplayContext.
-- KotlinLangForge is an FML `LIBRARY` providing the `klf` language loader. Declaring
-  an additional required mod dependency on library ID `klf` causes a misleading
-  missing-mod startup error. The working metadata follows its documented language
-  loader registration; runtime dependency resolution and startup were exercised.
+The cloud tool installer was updated and rerun successfully. TLS and checksum
+verification remain enabled. The Kotlin version reported by Gradle's own
+`--version` output is its embedded DSL runtime, not the selected mod compiler.
 
-## Tests and commands actually completed
+## API compatibility verification
 
-`./gradlew test runGameTestServer build --no-daemon --console=plain` completed
-successfully after the final code changes.
+Official Minecraft client classpaths were downloaded and checked against their
+manifest hashes, then relevant API signatures were inspected with javap. Actual
+NeoForge sources/classpaths and loader enums were also inspected. Compile/runtime
+checks use the patched NeoForge development artifacts, not only the client JARs.
 
-- **34 JUnit tests: 34 passed, zero failed, zero skipped.** Coverage includes exact
-  distances, conservative section bounds, negative coordinates, radius limits,
-  deterministic nearest ties, quantity rounding, shared stock, inventory/tag and
-  component matching, alternatives, recursive batches, surplus, stocked
-  compression cycles, cyclic alternatives, recursion/node limits and bounded
-  feedback for large ingredient tags.
-- **18 required GameTests passed:** 17 CraftLocator tests and one vanilla test.
-  CraftLocator tests cover nearest ore, unloaded chunk omission without loading,
-  dropped items versus potential ore sources, crafting tables, unauthorized and
-  authorized containers, both-half authorization for double chests, active
-  recipes/player inventory, command registration/full execution/permissions,
-  cancellation and disconnect, shared global budget/fairness and permission
-  revocation, reloadable source maps, an actual test-only item in a non-vanilla
-  namespace with a standard recipe, item components, dimension changes and death.
-- Kotlin compilation, metadata expansion, resource packaging, `assemble`, `check`
-  and `build` succeeded. English/Spanish key sets match (49 keys each).
-- Java and Gradle archives passed their pinned SHA-256 checks; the tool installer
-  was repeated successfully. TLS verification was retained. Gradle uses the
-  supplied proxy and system CA trust store; supported game JVM properties are
-  forwarded separately.
-- The dedicated development server reached `Done` with Minecraft 26.3,
-  NeoForge 26.3.0.99, CraftLocator 0.1.0 and the Kotlin adapter loaded. A local
-  Minecraft status-protocol request returned version 26.3/protocol 777.
-  `/craftlocate help` executed from the real server console. The console `stop`
-  command shut it down cleanly and saved its world. No graphical preview was used.
+The shared APIs used by CraftLocator are available across the requested range:
+Identifier/IdentifierArgument, PermissionSet, ResourceHandler<ItemResource>,
+loaded-only ServerChunkCache.getChunkNow, shaped/shapeless recipe assembly,
+ingredient predicates and current RecipeManager lookups. Classes outside this
+used API subset have changed between releases; each JAR is compiled against its
+own game/loader, not declared universally compatible by a widened range.
 
-The GameTest-only registry item and conditional fixture recipe are disabled in
-normal gameplay. The dedicated-server launch verified this normal loading path.
-Reports: `build/reports/tests/test/` and `runs/gametest/logs/`; dedicated runtime
-logs: `runs/server/logs/` (all ignored generated outputs).
+FML 11 exposes SERVER and FML 12 exposes SYNCED. Minimal compile-time adapters
+under `src/compat/{legacy,modern}` select the verified enum; shared mod logic
+remains in main. No reflective enum/field fallback is used. A fresh configuration
+of each target selects only the matching adapter. The GameTest fixture's structure
+DataVersion was set to the oldest supported game's official value (4790), and
+all three games successfully loaded it through their data-fixing pipeline.
 
-## Artifact
+## Checks actually completed
 
-`build/libs/craftlocator-0.1.0.jar` (144,777 bytes at final packaging).
-SHA-256: `1488c6b4b0d7aabf210b970a9d5e8d86c60021d79d45d39df4bf72c50080c31c`.
-A companion `.jar.sha256` file is present. The JAR contains the compiled mod and
-resources, expanded metadata and no shaded Kotlin runtime. Install the separate
-matching KotlinLangForge JAR. Archive timestamps/order are explicitly reproducible.
+For **each** supported target:
 
-## Limits of the evidence
+```bash
+./gradlew -Pminecraft_version=<target> test runGameTestServer build --no-daemon --console=plain
+```
 
-- Dedicated startup was exercised through the real NeoForge development launcher,
-  not a separate production installer installation. Real authenticated player
-  login, a graphical single-player/client session and Windows execution were not
-  run. Minecraft development mode uses its development authentication policy;
-  auth-service discovery also encountered connection refusals through the cloud
-  route. This did not prevent server startup, status requests or the tests.
-- Processing types and special/custom crafting types are not expanded. Known
-  displayed outputs report unsupported types; an opaque proprietary recipe with
-  no public output display cannot be attributed to its output item. Potential
-  ingot source rules validate an active standard cooking path but do not count
-  fuel or perform smelting. Crafting remainders are not simulated.
-- Search/time budgets and caches are bounded, but large production modpacks and
-  pathological third-party capability providers have not been benchmarked. The
-  time deadline is soft because platform calls cannot be preempted.
-- No globally optimal crafting plan or atomic world snapshot is claimed.
-- The initial hosted GitHub Actions build
-  [passed](https://github.com/athegreat90/CraftLocator/actions/runs/40563913455),
-  including all 18 required GameTests and uploading the compiled JAR artifact.
-  Environment snapshot publication remains a separate environment-settings step.
+- Compilation, metadata expansion, resources, assemble, check and build passed.
+- **34 JUnit tests passed, zero failed/errors/skipped**, per game target.
+- **18 required GameTests passed**, per target: 17 CraftLocator tests and one
+  vanilla test. These exercise actual registries, command execution, recipes,
+  inventories/components, nearby sources/stations, loaded-chunk restrictions,
+  double-chest authorization, permission revocation, cancellation, death,
+  dimension changes and shared-budget fairness.
+- All three JARs passed ZIP integrity checks and metadata inspection: exact
+  Minecraft version, matching minimum NeoForge version and mod version 0.2.0.
+- Config adapters and resources are present in the intended artifacts; no shaded
+  Kotlin runtime is required because KotlinLangForge supplies it externally.
 
-## Release automation — 2026-10-27
+This is **102 JUnit executions and 54 GameTest executions** across the local
+matrix. Reports are isolated in `build/mc<target>/reports/tests/test/` and
+`runs/<target>/gametest/logs/`.
 
-The workflow now publishes a commit-tagged release only after a successful push
-build on `main`. Pull requests/manual runs cannot enter the write-enabled job.
-The release consumes the same run's artifact, checks the checkout SHA, includes
-commit summaries and SHA-256, and stages asset uploads in a draft before publishing.
+The **17 Python automation tests** passed. They cover central target/pin
+validation, missing/duplicate/wrongly classified JAR rejection, all three assets
+and checksums, exact commit targeting, release notes, retrying drafts, preserving
+published releases, and refusing publication after failed uploads/API failures.
+Workflow syntax passed actionlint 1.7.12; shell scripts passed Bash syntax checks.
 
-Eight offline release-helper tests passed, covering initial/incremental notes,
-exact commit targeting, checksum contents, published-release idempotence, draft
-recovery, upload failure, missing JARs, permission errors and checkout mismatches.
-The workflow passed actionlint 1.7.12 (download verified against its official
-SHA-256) and Bash syntax validation. Hosted publication is exercised by the
-workflow run for the automation commit.
+The dedicated Minecraft **26.1.2** development server reached `Done`, returned
+26.1.2 from a real local Minecraft status-protocol request, and executed console
+help. The 26.3 dedicated startup/status/help had already been exercised in 0.1.0;
+its 0.2.0 configuration adapter and server functionality passed the new GameTests.
+GUI clients, Windows execution and real authenticated player login were not run.
+Development authentication policy and cloud auth-service access are unchanged.
 
-The former HTTP 403 dependency blocker was resolved by the user's environment
-configuration change; it is no longer an installation prerequisite.
+## Local artifacts
+
+| JAR | Bytes | SHA-256 |
+| --- | --- | --- |
+| `craftlocator-0.2.0-mc26.1.2.jar` | 145832 | `cb3d0944f7854bc0db74ecf7d43509683f72faa846265040bf7a4523fd2e89a4` |
+| `craftlocator-0.2.0-mc26.2.jar` | 145832 | `61e5fcb66d06397badcc7300fac4b531555a5453cb5f44ada8169d399f743444` |
+| `craftlocator-0.2.0-mc26.3.jar` | 145850 | `3b7fc6630a434eb84f0001bda6d10949ccbc897e621f761083b8a688716ca76a` |
+
+Each is under `build/mc<target>/libs/` with a companion `.sha256` file. Hosted
+release checksums are generated from the exact CI artifacts. Install only the
+JAR for your instance's game version plus the external KotlinLangForge JAR.
+
+## CI and publication
+
+The supported list and loader pins in gradle.properties drive the GitHub matrix;
+there is no second hardcoded version list in the workflow. Release publication
+requires every matrix build to succeed and exactly one classified JAR per target.
+All three JARs and all three checksum files are uploaded before publishing the
+draft. Pull requests/manual runs do not publish. The existing main-commit tag
+policy is retained; release titles and asset names carry version 0.2.0.
+
+The previous hosted 0.1.0 build and release workflow passed, including
+[the initial CI run](https://github.com/athegreat90/CraftLocator/actions/runs/40563913455).
+The 0.2.0 automation commit exercises the new hosted matrix and release job.
+Environment snapshots are separate from GitHub pushes and Releases.
+
+## Continuing limitations
+
+Special/custom processing recipes and crafting-remainder simulation remain
+unsupported by the planner. Public output displays identify unsupported recipe
+types where possible. Potential ingot source rules validate an active standard
+cooking recipe but do not count fuel or claim an existing ingot. The planner is
+a bounded heuristic and world scans are incremental observations, not atomic
+snapshots. Large production modpacks and arbitrary third-party capability
+providers have not been benchmarked. These limits are unchanged from 0.1.0.

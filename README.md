@@ -1,4 +1,4 @@
-# CraftLocator
+# CraftLocator 0.2.0
 
 A read-only Minecraft resource locator and crafting assistant for NeoForge.
 Authoritative world searches and recipe analysis run on the logical server.
@@ -8,27 +8,47 @@ There is no HUD, automatic mining, crafting, collection, movement or teleportati
 
 | Component | Pinned version |
 | --- | --- |
-| Minecraft Java Edition | 26.3 |
-| NeoForge | 26.3.0.99 |
+| Minecraft Java Edition | 26.1.2, 26.2, 26.3 |
+| NeoForge | Pinned separately for each game version (below) |
 | Java toolchain | 25 (cloud validation: Oracle 25.0.5.0.3) |
 | Kotlin | 2.4.21 |
 | KotlinLangForge | 2.16.0-k2.4.21-3.1+neoforge |
-| Gradle | 9.2.1 |
+| Gradle | 9.8.2 |
 | ModDevGradle | 2.0.148 |
 | JUnit Jupiter | 6.0.3 |
 
 Dependency and plugin versions are centralized in `gradle.properties`; the
 Gradle distribution and checksum are pinned in the wrapper configuration. The
-foundation is the official NeoForge 26.3 ModDevGradle MDK. KotlinLangForge is
+foundation is the official NeoForge ModDevGradle MDK. KotlinLangForge is
 required at runtime: [official download](https://modrinth.com/mod/kotlin-lang-forge).
 Its `klf` language adapter is declared through `modLoader`/`loaderVersion`, not
 through an additional required dependency on its FML library ID.
 
+## Compatibility and versioning
+
+CraftLocator **0.2.0** is a minor feature release: it adds Minecraft 26.1.2 and
+26.2 support while retaining 26.3. Java 25 and KotlinLangForge are required for
+all targets. Gradle **9.8.2** was the latest stable release when verified on
+2026-10-27; its distribution and wrapper JAR were checked against official hashes.
+
+| Minecraft | NeoForge build tested | Release JAR |
+| --- | --- | --- |
+| 26.1.2 | 26.1.2.124 | `craftlocator-0.2.0-mc26.1.2.jar` |
+| 26.2 | 26.2.0.93 | `craftlocator-0.2.0-mc26.2.jar` |
+| 26.3 | 26.3.0.99 | `craftlocator-0.2.0-mc26.3.jar` |
+
+Each JAR is compiled against its target game's actual APIs and declares that
+exact Minecraft version in its metadata. Install the JAR matching your instance;
+the three files are alternatives for different game versions. The default build
+is 26.3; `-Pminecraft_version=26.1.2` or `26.2` selects another supported target.
+All Minecraft/NeoForge pins and the supported list live in `gradle.properties`.
+
 ## Installation
 
-For a dedicated Linux or Windows server, install Java 25 and NeoForge 26.3.0.99
-with the official NeoForge installer. Put `craftlocator-0.1.0.jar` and the matching
-KotlinLangForge NeoForge JAR in the server's `mods` directory, then start NeoForge
+For a dedicated Linux or Windows server, install Java 25 and the NeoForge build
+for your Minecraft version from the table above using the official installer.
+Put that version's CraftLocator JAR and the matching KotlinLangForge NeoForge JAR
+in the server's `mods` directory, then start NeoForge
 using its generated launch script. Review Minecraft's EULA before running a server.
 Use the server console to grant operator permissions where appropriate.
 
@@ -83,10 +103,16 @@ loading or generating chunks.
 
 ## Configuration and permissions
 
-The authoritative server configuration is `config/craftlocator-synced.toml`.
-NeoForge 26.3 uses `SYNCED` in place of the older `SERVER` configuration type;
-`<world>/syncedconfig/craftlocator-synced.toml` can override it. Client-local values
-do not authorize server commands. Stop the server before editing persistent
+The configuration is authoritative on the logical server:
+
+- Minecraft **26.1.2/26.2** uses FML 11's `SERVER` type:
+  `<world>/serverconfig/craftlocator-server.toml` (templates in `defaultconfigs`).
+- Minecraft **26.3** uses FML 12's `SYNCED` type:
+  `config/craftlocator-synced.toml`, with an optional override in
+  `<world>/syncedconfig/craftlocator-synced.toml`.
+
+A compile-time adapter selects the actual loader API for each target. Client-local
+values do not authorize server commands. Stop the server before editing persistent
 settings; respect the platform's config reload behavior.
 
 | Setting | Default |
@@ -189,10 +215,18 @@ Use Java 25:
 ./gradlew compileKotlin test runGameTestServer build
 ```
 
-Windows: `gradlew.bat compileKotlin test runGameTestServer build`. The output is
-`build/libs/craftlocator-0.1.0.jar`. KotlinLangForge is an external runtime
-dependency and is not bundled into this JAR. JUnit reports are in
-`build/reports/tests/test/`; GameTest logs are in `runs/gametest/logs/`.
+Select a target explicitly, for example:
+
+```bash
+./gradlew -Pminecraft_version=26.1.2 compileKotlin test runGameTestServer build
+```
+
+Windows: use `gradlew.bat` with the same arguments. The output is
+`build/mc<game-version>/libs/craftlocator-0.2.0-mc<game-version>.jar`.
+KotlinLangForge remains an external runtime dependency. JUnit reports are in
+`build/mc<game-version>/reports/tests/test/`; GameTest logs are in
+`runs/<game-version>/gametest/logs/`. These directories isolate incremental
+compiler data, dependencies and generated metadata between targets.
 
 Cloud machines also provide a repeatable tool installer:
 
@@ -209,18 +243,23 @@ archive is a development tool with its bundled license, not a redistributed mod
 dependency. Its `latest` URL has a fixed expected digest: a future replacement
 fails closed and requires an independently verified tool update.
 
-`./scripts/run-dev-server.sh` starts a dedicated development server in `runs/server`
+`./scripts/run-dev-server.sh [minecraft-version]` starts a dedicated development
+server in `runs/<minecraft-version>/server` (26.3 by default)
 and supplies loopback-only defaults if no properties file exists.
 `./gradlew runServer` runs the same Gradle launch task directly;
-`./gradlew runClient` starts a graphical development client. The cloud has no
+`./gradlew -Pminecraft_version=26.1.2 runClient` starts a graphical development
+client for that target. Use `python3 scripts/server-status.py 26.1.2` to check an
+older dedicated server's version. Each target uses its own test/development worlds;
+existing worlds from the old `runs/server` location are left untouched. The cloud has no
 GUI/display, so graphical use is optional. Development mode uses Minecraft's development authentication policy; real online
 player authentication was not exercised. Review/accept Minecraft's EULA yourself
 if required by the server. Test functions and the conditional test-only item
 recipe are enabled exclusively in `runGameTestServer`, not normal gameplay.
 
-The completed cloud validation passed **34 JUnit tests** and **18 required GameTests**
-(17 CraftLocator tests plus one vanilla test), built the JAR, and exercised
-dedicated-server startup, status and console help.
+The test suites include **34 JUnit tests** and **17 CraftLocator GameTests**.
+The Minecraft GameTest runner may include its own test as well. Every supported
+target runs both suites and builds its own JAR; exact results are recorded in
+[the validation evidence](docs/COMPATIBILITY.md).
 
 GitHub Actions compiles, resolves dependencies, runs JUnit and GameTests, builds
 the JAR and uploads it with reports. The initial hosted build also
@@ -241,9 +280,10 @@ commit messages become the change descriptions.
 
 Download the JAR and its SHA-256 file directly from
 [GitHub Releases](https://github.com/athegreat90/CraftLocator/releases).
-The release uses the exact JAR artifact produced by that workflow's successful
-build. It is created as a draft, uploaded, then published only after both assets
-are available. Retrying resumes an interrupted draft or skips an already
+CI derives its three-version matrix from `gradle.properties`. A release waits
+for **all** target builds and tests to pass and consumes their exact JAR artifacts.
+It attaches all three labelled JARs and their individual SHA-256 files. It is
+created as a draft, uploaded, then published only after all six assets are available. Retrying resumes an interrupted draft or skips an already
 published release, preserving published assets.
 
 The build job has read-only repository access. Only the release job receives
@@ -278,6 +318,7 @@ src/main/kotlin/io/github/athegreat90/craftlocator/
   Recipes.kt         Sources.kt   GameTests.kt
   core/Geometry.kt   core/Planning.kt
   search/Search.kt   search/SearchManager.kt
+src/compat/{legacy,modern}/kotlin/  # FML SERVER / SYNCED configuration adapters
 src/main/resources/{META-INF,assets/craftlocator/lang,data/craftlocator}/
 src/test/kotlin/io/github/athegreat90/craftlocator/
 scripts/setup-tools.py

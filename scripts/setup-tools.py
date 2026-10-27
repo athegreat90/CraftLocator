@@ -11,15 +11,15 @@ import zipfile
 
 ROOT = Path('/workspace/.craftlocator-tools')
 JDK = ROOT / 'jdk-25.0.5.0.3'
-GRADLE = ROOT / 'gradle-9.2.1'
+GRADLE = ROOT / 'gradle-9.8.2'
 GRADLE_HOME = Path('/workspace/.gradle')
 ARTIFACTS = (
     ('jdk25.tar.gz',
      'https://download.oracle.com/java/25/latest/jdk-25_linux-x64_bin.tar.gz',
      '6deafad80454d1f968105b1f582d89b8c2e88a5dfc98116a8226e0ec2fd5df8e', JDK),
-    ('gradle-9.2.1-bin.zip',
-     'https://services.gradle.org/distributions/gradle-9.2.1-bin.zip',
-     '72f44c9f8ebcb1af43838f45ee5c4aa9c5444898b3468ab3f4af7b6076c5bc3f', GRADLE),
+    ('gradle-9.8.2-bin.zip',
+     'https://services.gradle.org/distributions/gradle-9.8.2-bin.zip',
+     '21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607', GRADLE),
 )
 
 

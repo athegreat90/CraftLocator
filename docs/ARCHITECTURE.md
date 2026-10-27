@@ -68,3 +68,18 @@ and cleared on shutdown; per-plan caches are discarded with that plan.
 The world can change during an incremental scan. Results are nearest observations
 in the domain examined, not an atomic snapshot of a moving world. Item positions
 and blocks can change afterward. Unloaded areas are always explicitly excluded.
+
+## Minecraft compatibility builds (0.2.0)
+
+The shared Kotlin implementation compiles for Minecraft 26.1.2, 26.2 and 26.3.
+`gradle.properties` is the sole list of supported targets and NeoForge pins; CI
+reads it through `scripts/build-targets.py`. The build selects a matching API
+classpath, one configuration adapter from `src/compat`, exact-target metadata
+and a `mc<version>` JAR classifier. FML 11 uses SERVER configuration and FML 12
+uses SYNCED; no reflective field lookup or broad enum fallback is needed.
+
+Builds are isolated under `build/mc<version>` and game directories under
+`runs/<version>`. The GameTest fixture uses the oldest supported game's structure
+data version so each game's normal data fixer can load it. The release job
+requires every matrix entry and validates exactly one classified JAR per target
+before creating a draft. Every asset is uploaded and checksummed before publishing.

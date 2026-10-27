@@ -10,8 +10,15 @@ version=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
 [[ "$GITHUB_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'Invalid commit SHA' >&2; exit 1; }
 [[ "$(git rev-parse HEAD)" == "$GITHUB_SHA" ]] || { echo 'Checkout differs from the tested commit' >&2; exit 1; }
 
-mapfile -d '' jars < <(find "$artifact_root" -type f -name "craftlocator-${version}.jar" -print0)
-[[ ${#jars[@]} -eq 1 ]] || { echo 'Expected exactly one tested CraftLocator JAR' >&2; exit 1; }
+script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+mapfile -t mc_versions < <(python3 "$script_dir/build-targets.py" --lines)
+[[ ${#mc_versions[@]} -gt 0 ]] || { echo 'No supported Minecraft targets' >&2; exit 1; }
+jars=()
+for minecraft in "${mc_versions[@]}"; do
+  mapfile -d '' matches < <(find "$artifact_root" -type f -name "craftlocator-${version}-mc${minecraft}.jar" -print0)
+  [[ ${#matches[@]} -eq 1 ]] || { echo "Expected exactly one tested Minecraft $minecraft JAR" >&2; exit 1; }
+  jars+=("${matches[0]}")
+done
 
 tag="main-${GITHUB_SHA}"
 short_sha=${GITHUB_SHA:0:7}
@@ -41,22 +48,29 @@ if [[ -n "$previous" ]]; then range="${previous}..${GITHUB_SHA}"; fi
   printf 'Automated release of CraftLocator **%s** from [`%s`](%s/commit/%s).\n\n' "$version" "$short_sha" "$repo_url" "$GITHUB_SHA"
   printf '## Changes\n\n'
   git log --reverse --no-merges --format='- %s (%h)' "$range"
-  printf '\n## Downloads\n\nThe attached JAR passed compilation, unit tests and NeoForge GameTests. Its `.sha256` file verifies the downloaded bytes. KotlinLangForge remains a separate runtime dependency.\n'
+  printf '\n## Downloads\n\nEach attached JAR passed compilation, unit tests and NeoForge GameTests on its labelled Minecraft version. Each `.sha256` file verifies the corresponding download. KotlinLangForge remains a separate runtime dependency.\n'
+  for minecraft in "${mc_versions[@]}"; do
+    printf '\n- Minecraft **%s**: `craftlocator-%s-mc%s.jar`\n' "$minecraft" "$version" "$minecraft"
+  done
   if [[ -n "$previous" ]]; then
     printf '\n[Full changes](%s/compare/%s...%s)\n' "$repo_url" "$previous" "$tag"
   fi
 } > "$work_dir/notes.md"
 
-jar_name="craftlocator-${version}.jar"
-cp -- "${jars[0]}" "$work_dir/$jar_name"
-(cd "$work_dir" && sha256sum -- "$jar_name" > "$jar_name.sha256")
+assets=()
+for jar in "${jars[@]}"; do
+  jar_name=$(basename -- "$jar")
+  cp -- "$jar" "$work_dir/$jar_name"
+  (cd "$work_dir" && sha256sum -- "$jar_name" > "$jar_name.sha256")
+  assets+=("$work_dir/$jar_name" "$work_dir/$jar_name.sha256")
+done
 
 # Keep partial uploads unpublished. A rerun resumes a draft, or skips a published release.
 if [[ "$exists" == false ]]; then
   gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
     --title "CraftLocator ${version} (${short_sha})" --notes-file "$work_dir/notes.md" --draft
 fi
-gh release upload "$tag" "$work_dir/$jar_name" "$work_dir/$jar_name.sha256" \
+gh release upload "$tag" "${assets[@]}" \
   --repo "$GITHUB_REPOSITORY" --clobber
 gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false
 gh release view "$tag" --repo "$GITHUB_REPOSITORY" --json url --jq .url

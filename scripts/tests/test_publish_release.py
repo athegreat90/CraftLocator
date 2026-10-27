@@ -24,7 +24,7 @@ elif a[:2]==['release','create']:
     notes=pathlib.Path(a[a.index('--notes-file')+1]).read_text()
     (root/'notes.md').write_text(notes)
 elif a[:2]==['release','upload']:
-    for p in a[3:5]:
+    for p in a[3:a.index('--repo')]:
         path=pathlib.Path(p);(root/path.name).write_bytes(path.read_bytes())
     if os.environ.get('FAKE_UPLOAD_FAILURE')=='1':sys.exit(1)
 elif a[:2]==['release','view']:
@@ -42,16 +42,20 @@ class PublishReleaseTest(unittest.TestCase):
         self.git('init', '-q')
         self.git('config', 'user.name', 'Release Test')
         self.git('config', 'user.email', 'release-test@example.invalid')
-        (self.repo / 'gradle.properties').write_text('mod_version=0.1.0\n')
+        (self.repo / 'gradle.properties').write_text('mod_version=0.2.0\nminecraft_version=26.3\nsupported_minecraft_versions=26.1.2,26.2,26.3\nneo_version.26.1.2=26.1.2.124\nneo_version.26.2=26.2.0.93\nneo_version.26.3=26.3.0.99\n')
         self.commit('Initial project')
         self.parent = self.git('rev-parse', 'HEAD').strip()
         (self.repo / 'change.txt').write_text('second change\n')
         self.commit('Add new resource source')
         self.sha = self.git('rev-parse', 'HEAD').strip()
-        self.artifacts = self.root / 'artifacts/build/libs'
-        self.artifacts.mkdir(parents=True)
-        self.jar = self.artifacts / 'craftlocator-0.1.0.jar'
-        self.jar.write_bytes(b'tested-jar-bytes')
+        self.jars = []
+        for target in ['26.1.2','26.2','26.3']:
+            artifacts = self.root / 'artifacts/build' / ('mc'+target) / 'libs'
+            artifacts.mkdir(parents=True)
+            jar = artifacts / f'craftlocator-0.2.0-mc{target}.jar'
+            jar.write_bytes(('tested-jar-bytes-'+target).encode())
+            self.jars.append(jar)
+        self.jar = self.jars[0]
         executable = self.root / 'bin/gh'
         executable.parent.mkdir()
         executable.write_text(FAKE_GH)
@@ -89,8 +93,11 @@ class PublishReleaseTest(unittest.TestCase):
         notes = (self.root / 'notes.md').read_text()
         self.assertIn('Initial project', notes)
         self.assertIn('Add new resource source', notes)
-        checksum = (self.root / 'craftlocator-0.1.0.jar.sha256').read_text()
-        self.assertEqual(checksum, hashlib.sha256(self.jar.read_bytes()).hexdigest() + '  craftlocator-0.1.0.jar\n')
+        for jar in self.jars:
+            checksum = (self.root / (jar.name+'.sha256')).read_text()
+            self.assertEqual(checksum, hashlib.sha256(jar.read_bytes()).hexdigest() + '  ' + jar.name + '\n')
+            self.assertEqual((self.root / jar.name).read_bytes(),jar.read_bytes())
+        self.assertEqual(len(calls[2][3:calls[2].index('--repo')]),6)
 
     def test_notes_include_only_changes_since_previous_release(self):
         self.git('tag', 'main-' + self.parent, self.parent)
@@ -125,6 +132,20 @@ class PublishReleaseTest(unittest.TestCase):
         result = self.run_release()
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(self.calls(), [])
+
+    def test_duplicate_target_jar_prevents_partial_release(self):
+        duplicate=self.root/'artifacts/duplicate'/self.jar.name
+        duplicate.parent.mkdir();duplicate.write_bytes(b'duplicate')
+        result=self.run_release()
+        self.assertNotEqual(result.returncode,0)
+        self.assertEqual(self.calls(),[])
+
+    def test_legacy_unclassified_jar_cannot_satisfy_matrix(self):
+        for jar in self.jars:jar.unlink()
+        (self.root/'artifacts/craftlocator-0.2.0.jar').write_bytes(b'legacy')
+        result=self.run_release()
+        self.assertNotEqual(result.returncode,0)
+        self.assertEqual(self.calls(),[])
 
     def test_api_permission_error_is_not_treated_as_missing_release(self):
         result = self.run_release(FAKE_RELEASE='forbidden')
