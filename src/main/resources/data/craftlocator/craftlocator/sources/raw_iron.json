@@ -1,0 +1,9 @@
+{
+  "target_item": "minecraft:raw_iron",
+  "source_blocks": [
+    "minecraft:iron_ore",
+    "minecraft:deepslate_iron_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.unknown"
+}

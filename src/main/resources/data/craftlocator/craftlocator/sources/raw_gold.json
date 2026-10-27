@@ -1,0 +1,9 @@
+{
+  "target_item": "minecraft:raw_gold",
+  "source_blocks": [
+    "minecraft:gold_ore",
+    "minecraft:deepslate_gold_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.unknown"
+}

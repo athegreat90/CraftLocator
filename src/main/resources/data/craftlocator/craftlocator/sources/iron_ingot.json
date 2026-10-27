@@ -1,0 +1,11 @@
+{
+  "target_item": "minecraft:iron_ingot",
+  "source_blocks": [
+    "minecraft:iron_ore",
+    "minecraft:deepslate_iron_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.iron",
+  "processing_input": "minecraft:raw_iron",
+  "processing_recipe_type": "minecraft:smelting"
+}

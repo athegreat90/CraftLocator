@@ -1,0 +1,9 @@
+{
+  "target_item": "minecraft:lapis_lazuli",
+  "source_blocks": [
+    "minecraft:lapis_ore",
+    "minecraft:deepslate_lapis_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.lapis"
+}

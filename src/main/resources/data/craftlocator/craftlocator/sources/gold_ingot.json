@@ -1,0 +1,11 @@
+{
+  "target_item": "minecraft:gold_ingot",
+  "source_blocks": [
+    "minecraft:gold_ore",
+    "minecraft:deepslate_gold_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.gold",
+  "processing_input": "minecraft:raw_gold",
+  "processing_recipe_type": "minecraft:smelting"
+}

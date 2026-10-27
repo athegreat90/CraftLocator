@@ -1,0 +1,16 @@
+{
+  "neoforge:conditions": [
+    {
+      "type": "neoforge:registered",
+      "value": "craftlocator:test_crystal"
+    }
+  ],
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:diamond"
+  ],
+  "result": {
+    "id": "craftlocator:test_crystal",
+    "count": 2
+  }
+}

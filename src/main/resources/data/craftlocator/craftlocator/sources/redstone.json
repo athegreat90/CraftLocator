@@ -1,0 +1,9 @@
+{
+  "target_item": "minecraft:redstone",
+  "source_blocks": [
+    "minecraft:redstone_ore",
+    "minecraft:deepslate_redstone_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.redstone"
+}

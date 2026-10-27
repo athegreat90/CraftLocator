@@ -1,0 +1,8 @@
+pluginManagement {
+    repositories { gradlePluginPortal() }
+    plugins {
+        id 'org.jetbrains.kotlin.jvm' version providers.gradleProperty('kotlin_version').get()
+        id 'net.neoforged.moddev' version providers.gradleProperty('moddev_version').get()
+    }
+}
+rootProject.name = 'CraftLocator'

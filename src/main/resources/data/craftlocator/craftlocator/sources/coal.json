@@ -1,0 +1,9 @@
+{
+  "target_item": "minecraft:coal",
+  "source_blocks": [
+    "minecraft:coal_ore",
+    "minecraft:deepslate_coal_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.coal"
+}

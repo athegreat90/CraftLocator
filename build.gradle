@@ -1,0 +1,47 @@
+plugins {
+    id 'java-library'
+    id 'org.jetbrains.kotlin.jvm'
+    id 'net.neoforged.moddev'
+}
+group = 'io.github.athegreat90.craftlocator'
+version = mod_version
+base { archivesName = 'craftlocator' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+kotlin { jvmToolchain(25) }
+repositories { maven { url = 'https://repo.nyon.dev/releases' }; mavenCentral() }
+neoForge {
+    version = neo_version
+    runs {
+        server { server(); programArgument '--nogui'; gameDirectory = project.file('runs/server') }
+        client { client() }
+        gameTestServer { type = 'gameTestServer'; gameDirectory = project.file('runs/gametest'); systemProperty 'neoforge.enabledGameTestNamespaces', 'craftlocator'; systemProperty 'craftlocator.tests', 'true' }
+    }
+    mods { craftlocator { sourceSet sourceSets.main } }
+}
+dependencies {
+    implementation "dev.nyon:KotlinLangForge:${klf_version}"
+    testImplementation platform("org.junit:junit-bom:${junit_version}")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+tasks.withType(Test).configureEach { useJUnitPlatform() }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/neoforge.mods.toml') { expand(version: project.version) }
+}
+
+// Gradle does not automatically forward its JVM's proxy/trust properties to game JVMs.
+neoForge.runs.configureEach {
+    ['http.proxyHost', 'http.proxyPort', 'https.proxyHost', 'https.proxyPort',
+     'http.nonProxyHosts', 'javax.net.ssl.trustStore'].each { name ->
+        def value = System.getProperty(name)
+        if (value != null) systemProperty name, value
+    }
+}
+tasks.named('runServer', JavaExec).configure { standardInput = System.in }
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}

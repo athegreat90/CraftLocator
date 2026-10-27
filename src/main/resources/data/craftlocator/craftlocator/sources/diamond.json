@@ -1,0 +1,9 @@
+{
+  "target_item": "minecraft:diamond",
+  "source_blocks": [
+    "minecraft:diamond_ore",
+    "minecraft:deepslate_diamond_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.diamond"
+}

@@ -1,0 +1,8 @@
+{
+  "target_item": "minecraft:mangrove_log",
+  "source_blocks": [
+    "minecraft:mangrove_log"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.wood"
+}

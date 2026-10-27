@@ -1,0 +1,11 @@
+{
+  "target_item": "minecraft:copper_ingot",
+  "source_blocks": [
+    "minecraft:copper_ore",
+    "minecraft:deepslate_copper_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.copper",
+  "processing_input": "minecraft:raw_copper",
+  "processing_recipe_type": "minecraft:smelting"
+}

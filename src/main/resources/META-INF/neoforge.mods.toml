@@ -1,0 +1,20 @@
+modLoader="klf"
+loaderVersion="[1,)"
+license="MIT"
+[[mods]]
+modId="craftlocator"
+version="${version}"
+displayName="CraftLocator"
+description='''Read-only server resource locator and crafting assistant.'''
+[[dependencies.craftlocator]]
+modId="neoforge"
+type="required"
+versionRange="[26.3.0.99,26.4)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.craftlocator]]
+modId="minecraft"
+type="required"
+versionRange="[26.3]"
+ordering="NONE"
+side="BOTH"

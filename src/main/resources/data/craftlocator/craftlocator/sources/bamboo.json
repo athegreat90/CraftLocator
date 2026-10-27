@@ -1,0 +1,8 @@
+{
+  "target_item": "minecraft:bamboo",
+  "source_blocks": [
+    "minecraft:bamboo"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.bamboo"
+}

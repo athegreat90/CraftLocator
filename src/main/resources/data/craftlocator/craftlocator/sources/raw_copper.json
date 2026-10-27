@@ -1,0 +1,9 @@
+{
+  "target_item": "minecraft:raw_copper",
+  "source_blocks": [
+    "minecraft:copper_ore",
+    "minecraft:deepslate_copper_ore"
+  ],
+  "source_type": "harvestable_block",
+  "conditions": "craftlocator.condition.unknown"
+}
