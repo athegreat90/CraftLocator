@@ -223,9 +223,37 @@ The completed cloud validation passed **34 JUnit tests** and **18 required GameT
 dedicated-server startup, status and console help.
 
 GitHub Actions compiles, resolves dependencies, runs JUnit and GameTests, builds
-the JAR and uploads it with reports. CI does not publish releases or require
-repository secrets. The workflow file is present; an actual hosted Actions run
-requires a push or manual dispatch and has not been performed here.
+the JAR and uploads it with reports. The initial hosted build also
+[passed on GitHub](https://github.com/athegreat90/CraftLocator/actions/runs/40563913455).
+
+### Automatic releases from main
+
+Every push to `main` publishes a GitHub Release **after** the build and tests
+succeed. Pull requests and manual workflow runs validate the project without
+publishing. Independent main pushes are not cancelled when newer code arrives.
+
+Release tags are `main-<full-commit-SHA>` and titles include the mod version and
+short commit ID. This gives each tested commit its own immutable release without
+automatically changing `mod_version`. Release notes list commit subjects since
+the nearest ancestor release tag, with a full comparison link; the first release
+lists the available history. Notes are generated from Git history, so meaningful
+commit messages become the change descriptions.
+
+Download the JAR and its SHA-256 file directly from
+[GitHub Releases](https://github.com/athegreat90/CraftLocator/releases).
+The release uses the exact JAR artifact produced by that workflow's successful
+build. It is created as a draft, uploaded, then published only after both assets
+are available. Retrying resumes an interrupted draft or skips an already
+published release, preserving published assets.
+
+The build job has read-only repository access. Only the release job receives
+`contents: write`, using GitHub's automatically provided token; no personal token
+or additional repository secret is required. Repository/organization policies
+must permit that workflow permission. The release helper's offline tests run with:
+
+```bash
+python3 -m unittest discover -s scripts/tests -v
+```
 
 ## Troubleshooting
 

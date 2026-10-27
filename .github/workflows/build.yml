@@ -7,8 +7,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: build-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: build-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,6 +20,8 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6.4.0
+      - name: Test release automation
+        run: python3 -m unittest discover -s scripts/tests -v
       - name: Resolve dependencies, compile, test and build
         run: ./gradlew --no-daemon --console=plain compileKotlin test runGameTestServer build
       - name: Upload mod and reports
@@ -32,3 +34,25 @@ jobs:
             build/reports/tests/
             runs/gametest/logs/
           if-no-files-found: error
+  release:
+    name: Publish main release
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: CraftLocator
+          path: release-artifacts
+      - name: Publish tested JAR with change notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish-release.sh release-artifacts

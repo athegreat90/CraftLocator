@@ -12,3 +12,6 @@
   using NeoForge's ResourceHandler<ItemResource> capability.
 - Add server SYNCED configuration, English/Spanish text and copyable coordinates.
 - Add JUnit and server GameTests, reproducible Gradle wrapper and GitHub Actions.
+- Publish a commit-tagged GitHub Release after each successful main push, with
+  changes since the preceding release, the tested JAR and its SHA-256 checksum.
+  Retry interrupted drafts safely and preserve already published releases.

@@ -23,6 +23,10 @@ Git worktree unless the user explicitly requests one. Preserve user changes.
   integration validation; inspect the completed test counts and process status.
 - Preserve TLS, signatures and checksums. Never update a checksum merely to make
   a failed download pass. Never add credentials to source, instructions or logs.
+- Release automation: run `python3 -m unittest discover -s scripts/tests -v`
+  for workflow/helper changes. Publish only after a successful main-push build,
+  using that run's tested JAR and exact SHA. Keep write permission confined to
+  the release job, preserve published assets on retries, and never release PRs.
 
 ## Implementation invariants
 

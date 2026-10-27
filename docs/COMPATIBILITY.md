@@ -2,7 +2,8 @@
 
 The cloud now supports compilation, automated tests, JAR packaging and dedicated
 server development. The initial repository was empty; the implementation and
-supporting files were created locally. Nothing has been pushed or released.
+supporting files were created locally. The initial implementation was subsequently
+pushed to `main` as commit `929ef99` with the user's authorization.
 
 ## Actual versions
 
@@ -118,9 +119,24 @@ matching KotlinLangForge JAR. Archive timestamps/order are explicitly reproducib
   pathological third-party capability providers have not been benchmarked. The
   time deadline is soft because platform calls cannot be preempted.
 - No globally optimal crafting plan or atomic world snapshot is claimed.
-- The GitHub Actions workflow was created and uses verified stable release tags;
-  no hosted workflow run, push, release or environment publication was performed
-  by the agent. Snapshot publication remains the user's environment-settings step.
+- The initial hosted GitHub Actions build
+  [passed](https://github.com/athegreat90/CraftLocator/actions/runs/40563913455),
+  including all 18 required GameTests and uploading the compiled JAR artifact.
+  Environment snapshot publication remains a separate environment-settings step.
+
+## Release automation — 2026-10-27
+
+The workflow now publishes a commit-tagged release only after a successful push
+build on `main`. Pull requests/manual runs cannot enter the write-enabled job.
+The release consumes the same run's artifact, checks the checkout SHA, includes
+commit summaries and SHA-256, and stages asset uploads in a draft before publishing.
+
+Eight offline release-helper tests passed, covering initial/incremental notes,
+exact commit targeting, checksum contents, published-release idempotence, draft
+recovery, upload failure, missing JARs, permission errors and checkout mismatches.
+The workflow passed actionlint 1.7.12 (download verified against its official
+SHA-256) and Bash syntax validation. Hosted publication is exercised by the
+workflow run for the automation commit.
 
 The former HTTP 403 dependency blocker was resolved by the user's environment
 configuration change; it is no longer an installation prerequisite.
